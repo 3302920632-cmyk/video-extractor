@@ -212,60 +212,51 @@
       try {
         let videoData = null;
 
-        const serverUrl = 'http://localhost:3000/api/extract';
-        
-        try {
-          const response = await fetch(serverUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
-            timeout: 30000,
-          });
-          const data = await response.json();
-          if (data.success && data.video) {
-            videoData = data.video;
-          }
-        } catch (e) {
-          console.log('Server API failed, trying third-party APIs...');
-        }
+        const corsProxies = [
+          'https://cors-anywhere.herokuapp.com/',
+          'https://api.allorigins.win/raw?url=',
+          'https://corsproxy.io/?url=',
+        ];
 
-        if (!videoData) {
-          for (const api of VIDEO_APIS) {
+        const apis = [
+          { url: 'https://api.pingcc.cn/api/video', param: 'url' },
+          { url: 'https://api.wookong.xyz/api/video/getVideoInfo', param: 'url' },
+          { url: 'https://www.mojieai.cn/api/video', param: 'url' },
+        ];
+
+        for (const proxy of corsProxies) {
+          for (const api of apis) {
             try {
-              const response = await fetch(`${api.url}?${api.param}=${encodeURIComponent(url)}`, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                },
-                timeout: 10000,
-              });
+              const targetUrl = `${api.url}?${api.param}=${encodeURIComponent(url)}`;
+              let fetchUrl = '';
+              if (proxy.includes('corsproxy.io')) {
+                fetchUrl = proxy + encodeURIComponent(targetUrl);
+              } else if (proxy.includes('allorigins')) {
+                fetchUrl = proxy + encodeURIComponent(targetUrl);
+              } else {
+                fetchUrl = proxy + targetUrl;
+              }
+              
+              const response = await fetch(fetchUrl, { timeout: 15000 });
               const data = await response.json();
               
-              if (data.success || data.code === 200 || data.code === 1) {
-                const result = data.data || data;
-                if (result.video_url || result.playUrl || result.url || result.video) {
-                  videoData = {
-                    title: result.title || result.desc || result.name || '视频',
-                    downloadUrl: result.video_url || result.playUrl || result.url || result.video,
-                    thumbnail: result.cover_url || result.cover || result.image || '',
-                    duration: result.duration || '01:00',
-                    resolution: result.resolution || '1080p',
-                    platform: platform,
-                  };
-                  break;
-                }
+              if ((data.code === 200 || data.code === 1) && data.data) {
+                const d = data.data;
+                videoData = {
+                  title: d.title || d.desc || '视频',
+                  downloadUrl: d.video_url || d.playUrl || d.url || '',
+                  thumbnail: d.cover_url || d.cover || '',
+                  duration: d.duration || '01:00',
+                  resolution: d.resolution || '1080p',
+                  platform: platform,
+                };
+                break;
               }
             } catch (e) {
-              console.log('API failed:', api.url, e);
+              console.log('Proxy+API failed:', proxy, api.url);
             }
           }
-        }
-
-        if (!videoData && platform === 'douyin') {
-          videoData = await extractWithDouyinDirect(url);
-        }
-
-        if (!videoData && platform === 'douyin') {
-          videoData = await extractWithDouyinAPI(url);
+          if (videoData) break;
         }
 
         if (videoData) {

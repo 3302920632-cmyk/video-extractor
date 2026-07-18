@@ -6,9 +6,11 @@ services:
     buildCommand: |
       npm install
       npm run build
-      pip3 install yt-dlp
+      pip install yt-dlp
     startCommand: node cloud-server.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: YT_DLP_PATH
+        value: /opt/render/project/src/.venv/bin/yt-dlp
     healthCheckPath: /
