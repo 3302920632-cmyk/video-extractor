@@ -23,21 +23,72 @@ function fmtDur(sec) {
 
 async function extractDouyin(url) {
   try {
-    const { data: html } = await fetchHtml(url, { 'Referer': 'https://www.douyin.com/' });
-    const id = html.match(/aweme_id["']?\s*[:=]\s*["']([^"']+)["']/)?.[1];
-    if (!id) {
-      const m = html.match(/["'](https:\/\/[^\s"']*douyin[^\s"']*video[^\s"']+)["']/);
-      return m ? { title: '抖音视频', downloadUrl: m[1], thumbnail: '', duration: '-', resolution: '1080p', platform: 'douyin' } : null;
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Referer': 'https://www.douyin.com/',
+      'Cookie': 'ttwid=1%7C0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a%7C1700000000; sessionid=0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a;'
+    };
+
+    const resp = await fetch(url, { headers, redirect: 'follow' });
+    const html = await resp.text();
+
+    const awemeIdMatch = html.match(/aweme_id["']?\s*[:=]\s*["']([^"']+)["']/);
+    if (awemeIdMatch) {
+      const awemeId = awemeIdMatch[1];
+      try {
+        const apiUrl = `https://www.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=${awemeId}`;
+        const apiResp = await fetch(apiUrl, { headers });
+        const apiData = await apiResp.text();
+        const jsonMatch = apiData.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const json = JSON.parse(jsonMatch[0]);
+          if (json.aweme_detail?.aweme_id) {
+            const d = json.aweme_detail;
+            const urls = d.video?.play_addr?.url_list || d.video?.play_url?.url_list || [];
+            if (urls.length > 0) {
+              const playUrl = urls[0].replace(/\\u002F/g, '/');
+              return {
+                title: d.desc || '抖音视频',
+                downloadUrl: playUrl.includes('playwm') ? playUrl.replace('playwm', 'play') : playUrl,
+                thumbnail: d.video?.cover?.url_list?.[0] || '',
+                duration: fmtDur(d.duration / 1000),
+                resolution: '1080p',
+                platform: 'douyin'
+              };
+            }
+          }
+        }
+      } catch (e) { console.error('Douyin API error:', e); }
     }
-    const { data: apiData } = await fetchHtml(`https://www.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=${id}`, { 'Referer': url });
-    const json = JSON.parse(apiData);
-    if (json.aweme_detail?.aweme_id) {
-      const d = json.aweme_detail;
-      const urls = d.video?.play_addr?.url_list || [];
-      if (urls.length > 0) {
-        return { title: d.desc || '抖音视频', downloadUrl: urls[0], thumbnail: d.video?.cover?.url_list?.[0] || '', duration: fmtDur(d.duration / 1000), resolution: '1080p', platform: 'douyin' };
-      }
+
+    const playUrlMatch = html.match(/"playUrl":\s*["']([^"']+)["']/) || html.match(/"play_addr":\s*\{[\s\S]*?"url_list":\s*\[["']([^"']+)["']/);
+    if (playUrlMatch) {
+      let playUrl = playUrlMatch[1];
+      if (playUrl.includes('playwm')) playUrl = playUrl.replace('playwm', 'play');
+      return {
+        title: '抖音视频',
+        downloadUrl: playUrl,
+        thumbnail: '',
+        duration: '-',
+        resolution: '1080p',
+        platform: 'douyin'
+      };
     }
+
+    const videoUrlMatch = html.match(/["'](https?:\/\/[^\s"']*douyin[^\s"']*video[^\s"']+)["']/);
+    if (videoUrlMatch) {
+      return {
+        title: '抖音视频',
+        downloadUrl: videoUrlMatch[1],
+        thumbnail: '',
+        duration: '-',
+        resolution: '1080p',
+        platform: 'douyin'
+      };
+    }
+
   } catch (e) { console.error('Douyin error:', e); }
   return null;
 }
@@ -57,15 +108,26 @@ async function extractBilibili(url) {
       { headers: { 'User-Agent': DEFAULT_HEADERS['User-Agent'], 'Referer': url } }
     );
     const playJson = await playResp.json();
-    if (playJson.code !== 0 || !playJson.data?.dash?.video) return null;
-    const best = playJson.data.dash.video.sort((a, b) => (b.bandwidth || 0) - (a.bandwidth || 0))[0];
-    if (!best?.baseUrl) return null;
+    if (playJson.code !== 0 || !playJson.data) return null;
+    
+    let downloadUrl = '';
+    const playData = playJson.data;
+    
+    if (playData.dash?.video && playData.dash.video.length > 0) {
+      const best = playData.dash.video.sort((a, b) => (b.bandwidth || 0) - (a.bandwidth || 0))[0];
+      downloadUrl = best?.baseUrl || '';
+    } else if (playData.durl && playData.durl.length > 0) {
+      downloadUrl = playData.durl[0]?.url || '';
+    }
+    
+    if (!downloadUrl) return null;
+    
     return {
       title: d.title || 'B站视频',
-      downloadUrl: best.baseUrl,
+      downloadUrl: downloadUrl,
       thumbnail: d.pic,
       duration: fmtDur(d.duration),
-      resolution: (best.id4 || '').toString().includes('1080') ? '1080p' : '720p',
+      resolution: playData.quality === 80 ? '1080p' : '720p',
       fps: d.frame_rate?.split(' ')[0] || '30',
       platform: 'bilibili',
     };
@@ -99,7 +161,7 @@ Deno.serve(async (req) => {
   const cors = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-client-info',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,apikey,x-client-info',
   };
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
   if (req.method !== 'POST') return new Response(JSON.stringify({ success: false, message: '仅支持POST' }), { status: 405, headers: { 'Content-Type': 'application/json', ...cors } });

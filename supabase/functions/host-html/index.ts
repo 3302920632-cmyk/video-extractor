@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+Deno.serve(async (req) => {
+  const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -472,7 +473,7 @@
     function showToast(message, type = 'info') {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
+      toast.className = \`toast \${type}\`;
       toast.textContent = message;
       container.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
@@ -480,7 +481,7 @@
 
     function extractUrl(text) {
       // 从分享文本中提取 http/https 链接
-      const match = text.match(/https?:\/\/[^\s\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+/i);
+      const match = text.match(/https?:\\/\\/[^\\s\\u4e00-\\u9fff\\u3000-\\u303f\\uff00-\\uffef]+/i);
       return match ? match[0] : text.trim();
     }
 
@@ -525,7 +526,7 @@
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${API_KEY}`
+              'Authorization': \`Bearer \${API_KEY}\`
             },
             body: JSON.stringify({ url, platform })
           });
@@ -554,10 +555,10 @@
     }
 
     async function extractBilibili(url) {
-      const bvid = url.match(/BV[\w]+/)?.[0];
+      const bvid = url.match(/BV[\\w]+/)?.[0];
       if (!bvid) throw new Error('无法识别B站视频链接');
 
-      const viewResp = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
+      const viewResp = await fetch(\`https://api.bilibili.com/x/web-interface/view?bvid=\${bvid}\`, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15' }
       });
       const viewJson = await viewResp.json();
@@ -565,7 +566,7 @@
 
       const d = viewJson.data;
       const playResp = await fetch(
-        `https://api.bilibili.com/x/player/playurl?avid=${d.aid}&cid=${d.cid}&qn=80&fnval=1&fourk=1`,
+        \`https://api.bilibili.com/x/player/playurl?avid=\${d.aid}&cid=\${d.cid}&qn=80&fnval=1&fourk=1\`,
         { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15', 'Referer': url } }
       );
       const playJson = await playResp.json();
@@ -597,39 +598,39 @@
     function fmtDur(sec) {
       const m = Math.floor(sec / 60);
       const s = Math.floor(sec % 60);
-      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      return \`\${String(m).padStart(2, '0')}:\${String(s).padStart(2, '0')}\`;
     }
 
     function cleanUrl(url) {
       if (!url) return '';
-      return url.replace(/\\u002F/g, '/').replace(/\\u0026/g, '&');
+      return url.replace(/\\\\u002F/g, '/').replace(/\\\\u0026/g, '&');
     }
 
     function renderResult(video) {
       const area = document.getElementById('resultArea');
       video.downloadUrl = cleanUrl(video.downloadUrl);
       video.thumbnail = cleanUrl(video.thumbnail);
-      const safeTitle = (video.title || '视频').replace(/'/g, "\\'");
-      area.innerHTML = `
+      const safeTitle = (video.title || '视频').replace(/'/g, "\\\\'");
+      area.innerHTML = \`
         <div class="result-card">
           <div class="video-preview">
-            <video id="videoPlayer" controls poster="${video.thumbnail || ''}" preload="metadata">
-              <source src="${video.downloadUrl}" type="video/mp4">
+            <video id="videoPlayer" controls poster="\${video.thumbnail || ''}" preload="metadata">
+              <source src="\${video.downloadUrl}" type="video/mp4">
               您的浏览器不支持视频播放
             </video>
           </div>
           <div class="video-info">
             <div class="info-item">
               <span class="label">时长</span>
-              <span class="value" id="info-duration">${video.duration !== '-' && video.duration ? video.duration : '检测中...'}</span>
+              <span class="value" id="info-duration">\${video.duration !== '-' && video.duration ? video.duration : '检测中...'}</span>
             </div>
             <div class="info-item">
               <span class="label">分辨率</span>
-              <span class="value" id="info-resolution">${video.resolution && video.resolution !== '-' ? video.resolution : '检测中...'}</span>
+              <span class="value" id="info-resolution">\${video.resolution && video.resolution !== '-' ? video.resolution : '检测中...'}</span>
             </div>
             <div class="info-item">
               <span class="label">帧率</span>
-              <span class="value" id="info-fps">${video.fps && video.fps !== '-' ? video.fps + ' fps' : '检测中...'}</span>
+              <span class="value" id="info-fps">\${video.fps && video.fps !== '-' ? video.fps + ' fps' : '检测中...'}</span>
             </div>
             <div class="info-item">
               <span class="label">文件大小</span>
@@ -637,16 +638,16 @@
             </div>
           </div>
           <div class="action-buttons">
-            <button class="btn-download" onclick="downloadVideo('${video.downloadUrl}', '${safeTitle}')">
+            <button class="btn-download" onclick="downloadVideo('\${video.downloadUrl}', '\${safeTitle}')">
               <span class="icon">⬇</span>
               <span>下载视频</span>
             </button>
-            <button class="btn-secondary-action" onclick="copyLink('${video.downloadUrl}')">
+            <button class="btn-secondary-action" onclick="copyLink('\${video.downloadUrl}')">
               🔗 复制链接
             </button>
           </div>
         </div>
-      `;
+      \`;
 
       const v = document.getElementById('videoPlayer');
       if (v) {
@@ -661,7 +662,7 @@
           }
 
           if (res && v.videoWidth && v.videoHeight) {
-            res.textContent = `${v.videoWidth}x${v.videoHeight}`;
+            res.textContent = \`\${v.videoWidth}x\${v.videoHeight}\`;
           }
 
           if (fpsEl && (video.fps === '-' || !video.fps)) {
@@ -706,3 +707,11 @@
   </script>
 </body>
 </html>
+`;
+  return new Response(html, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    },
+  });
+});
