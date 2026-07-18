@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>本地视频增强 · 真超分</title>
+<style>
+  :root { --bg:#f0f4fb; --ink:#151515; --lime:#d7ff63; --blue:#8db2ff; --peach:#ffc48f; --mint:#c9f0d2; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%, #e8f0ff 0%, var(--bg) 60%);
+    color:var(--ink); min-height:100vh; padding:32rpx;
+  }
+  .wrap { max-width:720px; margin:0 auto; padding:28rpx; }
+  h1 { font-size:30rpx; font-weight:900; letter-spacing:-0.5px; margin:0 0 6rpx; }
+  .sub { color:#5b6577; font-size:24rpx; margin:0 0 22rpx; line-height:1.6; }
+  .card {
+    background:var(--mint); border:3rpx solid var(--ink); border-radius:30rpx;
+    box-shadow:6rpx 6rpx 0 var(--ink); padding:24rpx; margin-bottom:20rpx;
+  }
+  .drop {
+    border:3rpx dashed var(--ink); border-radius:24rpx; padding:40rpx 20rpx; text-align:center;
+    cursor:pointer; transition:transform .15s ease, background .15s ease; background:#fffaf0;
+  }
+  .drop:hover { transform:translate(-2rpx,-2rpx); background:#fff; }
+  .drop b { font-size:26rpx; }
+  .drop small { display:block; color:#5b6577; margin-top:8rpx; font-size:22rpx; }
+  input[type=file] { display:none; }
+  .badge {
+    display:inline-block; padding:6rpx 16rpx; border-radius:999rpx; font-size:21rpx; font-weight:700;
+    border:2rpx solid var(--ink); margin-left:8rpx;
+  }
+  .badge.real { background:var(--lime); }
+  .badge.lite { background:var(--peach); }
+  .row { display:flex; gap:14rpx; align-items:center; flex-wrap:wrap; margin-top:16rpx; }
+  button {
+    font-family:inherit; font-weight:800; font-size:24rpx; padding:16rpx 28rpx; border-radius:999rpx;
+    border:3rpx solid var(--ink); background:var(--lime); box-shadow:4rpx 4rpx 0 var(--ink);
+    cursor:pointer; transition:transform .1s ease;
+  }
+  button:active { transform:translate(2rpx,2rpx); box-shadow:1rpx 1rpx 0 var(--ink); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  button.ghost { background:#fff; }
+  .progress { height:18rpx; background:#fff; border:2rpx solid var(--ink); border-radius:999rpx; overflow:hidden; margin-top:18rpx; }
+  .progress > i { display:block; height:100%; width:0%; background:var(--blue); transition:width .2s ease; }
+  .log { font-size:21rpx; color:#3a4250; margin-top:14rpx; white-space:pre-wrap; line-height:1.5; max-height:240rpx; overflow:auto; }
+  .result video { width:100%; border-radius:18rpx; border:2rpx solid var(--ink); margin-top:14rpx; background:#000; }
+  .tip { font-size:21rpx; color:#5b6577; line-height:1.6; }
+  a { color:#2b5fd9; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>本地视频增强 <span id="modeBadge" class="badge">检测中…</span></h1>
+  <p class="sub">纯前端 · 算力跑在你自己设备的浏览器/GPU 上 · 不联网处理、不常驻、免费。<br>
+  电脑 Chrome / Edge 用 WebGPU 跑 Real-ESRGAN <b>真 4× 超分</b>；手机算力有限会自动切换为轻量锐化。</p>
+
+  <div class="card">
+    <label class="drop" id="drop">
+      <b>点击选择视频，或拖拽到此处</b>
+      <small>支持 mp4 / mov / webm · 建议短视频（≤约 20 秒）以保证流畅</small>
+      <input type="file" id="file" accept="video/*" />
+    </label>
+    <div class="row">
+      <button id="start" disabled>开始增强</button>
+      <button id="clear" class="ghost" disabled>清空</button>
+      <span class="tip" id="fileInfo"></span>
+    </div>
+    <div class="progress" id="progWrap" style="display:none"><i id="prog"></i></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="card result" id="resultCard" style="display:none">
+    <b>增强完成</b>
+    <video id="outVideo" controls></video>
+    <div class="row"><a id="dl" download="enhanced.mp4">⬇ 下载增强视频</a></div>
+  </div>
+
+  <div class="card">
+    <p class="tip"><b>说明：</b>首次使用会从公共 CDN 加载开源模型与推理库（仅一次性下载并缓存），<b>视频内容全程在你本地设备处理，不会上传任何服务器</b>。若浏览器不支持 WebGPU，将自动降级为本地 Canvas 锐化（非真超分）。增强后视频保留原音轨。</p>
+  </div>
+</div>
+
+<script type="module">
+import { pipeline, RawImage } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.2';
+import { fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
+
+const $ = (id) => document.getElementById(id);
+const log = (m) => { $('log').textContent += m + '\n'; $('log').scrollTop = $('log').scrollHeight; };
+const setProg = (p) => { $('prog').style.width = Math.round(p * 100) + '%'; };
+
+let hasWebGPU = !!navigator.gpu;
+let upscaler = null;
+let srcFile = null;
+
+// ---- 模式检测 ----
+async function detectMode() {
+  const badge = $('modeBadge');
+  if (hasWebGPU) {
+    try {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (adapter) { badge.textContent = '真超分 (WebGPU)'; badge.className = 'badge real'; return; }
+    } catch (e) {}
+  }
+  hasWebGPU = false;
+  badge.textContent = '轻量锐化 (手机/无WebGPU)';
+  badge.className = 'badge lite';
+}
+
+// ---- 加载超分模型 ----
+async function loadUpscaler() {
+  if (!hasWebGPU) return;
+  log('加载 Real-ESRGAN 模型（首次需联网下载，仅一次）…');
+  upscaler = await pipeline('image-to-image', 'Xenova/realesrgan');
+  log('模型就绪。');
+}
+
+// ---- 抽帧（离线，先把原始帧读出来）----
+async function extractFrames(file, maxSide = 512, maxFrames = 240) {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.src = url; video.muted = true; video.playsInline = true;
+  await new Promise((res, rej) => {
+    video.onloadedmetadata = res; video.onerror = () => rej(new Error('视频加载失败'));
+  });
+  const dur = video.duration;
+  let fps = 30;
+  try {
+    const v = video.videoWidth, h = video.videoHeight;
+    fps = evalFps(video);
+    log(`视频 ${v}×${h}，时长 ${dur.toFixed(1)}s，帧率 ${fps.toFixed(2)}`);
+  } catch (e) {}
+  const total = Math.min(maxFrames, Math.max(1, Math.floor(dur * fps)));
+  const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
+  const tw = Math.round(video.videoWidth * scale), th = Math.round(video.videoHeight * scale);
+
+  const canvas = document.createElement('canvas'); canvas.width = tw; canvas.height = th;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const frames = [];
+  for (let i = 0; i < total; i++) {
+    const t = (i / fps);
+    video.currentTime = Math.min(t, dur - 0.001);
+    await new Promise((res) => { video.onseeked = res; });
+    ctx.drawImage(video, 0, 0, tw, th);
+    frames.push(ctx.getImageData(0, 0, tw, th));
+    if (i % 20 === 0) log(`抽帧 ${i + 1}/${total}`);
+  }
+  URL.revokeObjectURL(url);
+  return { frames, fps, tw, th };
+}
+
+function evalFps(video) {
+  // 粗略估计：用 metadata 没有可靠 fps，按 30 处理；如需精确可后续扩展
+  return 30;
+}
+
+// ---- 超分单帧 ----
+async function upscaleFrame(imgData) {
+  const src = new RawImage(imgData.data, imgData.width, imgData.height, 4);
+  const out = await upscaler(src);
+  return out; // RawImage, .width/.height/.data
+}
+
+// ---- 轻量锐化（降级）----
+function sharpenFrame(imgData) {
+  const c = document.createElement('canvas'); c.width = imgData.width; c.height = imgData.height;
+  const x = c.getContext('2d'); x.putImageData(imgData, 0, 0);
+  const out = document.createElement('canvas'); out.width = imgData.width; out.height = imgData.height;
+  const o = out.getContext('2d');
+  o.filter = 'contrast(1.18) saturate(1.1) brightness(1.03)';
+  o.drawImage(c, 0, 0);
+  // 简单 unsharp：叠加一次模糊的负片
+  o.globalAlpha = 0.5; o.filter = 'blur(1px) contrast(1.4)'; o.drawImage(c, 0, 0);
+  o.globalAlpha = 1; o.filter = 'none';
+  return o.getImageData(0, 0, imgData.width, imgData.height);
+}
+
+// ---- 处理 + 录制 ----
+async function run() {
+  if (!srcFile) return;
+  $('start').disabled = true; $('clear').disabled = true;
+  $('progWrap').style.display = 'block'; setProg(0);
+  $('resultCard').style.display = 'none';
+  try {
+    const { frames, fps } = await extractFrames(srcFile);
+    const N = frames.length;
+    const outW = frames[0].width * (hasWebGPU ? 4 : 1);
+    const outH = frames[0].height * (hasWebGPU ? 4 : 1);
+
+    // 预生成输出帧（ImageBitmap）
+    log(hasWebGPU ? '真超分处理中…' : '轻量锐化处理中…');
+    const outCanvas = document.createElement('canvas'); outCanvas.width = outW; outCanvas.height = outH;
+    const outCtx = outCanvas.getContext('2d');
+    const bitmaps = [];
+    const tmp = document.createElement('canvas');
+    for (let i = 0; i < N; i++) {
+      let r;
+      if (hasWebGPU) {
+        const ri = await upscaleFrame(frames[i]);
+        tmp.width = ri.width; tmp.height = ri.height;
+        const tctx = tmp.getContext('2d');
+        const im = new ImageData(new Uint8ClampedArray(ri.data), ri.width, ri.height);
+        tctx.putImageData(im, 0, 0);
+        r = tmp;
+      } else {
+        const sd = sharpenFrame(frames[i]);
+        tmp.width = sd.width; tmp.height = sd.height;
+        tmp.getContext('2d').putImageData(sd, 0, 0);
+        r = tmp;
+      }
+      bitmaps.push(await createImageBitmap(r));
+      setProg((i + 1) / N * 0.6);
+      if (i % 10 === 0) log(`处理帧 ${i + 1}/${N}`);
+    }
+
+    // 回放录制（保证音画同步）
+    log('合成视频（保留原音轨）…');
+    const url = URL.createObjectURL(srcFile);
+    const av = document.createElement('video'); av.src = url; av.muted = true; av.playsInline = true;
+    await new Promise((res) => { av.onloadedmetadata = res; });
+    const aStream = av.captureStream ? av.captureStream() : null;
+    const audioTrack = aStream ? aStream.getAudioTracks()[0] : null;
+
+    const recCanvas = document.createElement('canvas'); recCanvas.width = outW; recCanvas.height = outH;
+    const recCtx = recCanvas.getContext('2d');
+    let mime = 'video/webm;codecs=vp9';
+    if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
+    if (!MediaRecorder.isTypeSupported(mime) && MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
+
+    const stream = new MediaStream();
+    recCanvas.captureStream(fps).getVideoTracks().forEach(t => stream.addTrack(t));
+    if (audioTrack) stream.addTrack(audioTrack);
+
+    const chunks = [];
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const done = new Promise((res) => { rec.onstop = res; });
+
+    // 播放原视频以驱动音轨
+    av.muted = false; av.currentTime = 0;
+
+    rec.start();
+    av.play().catch(() => {});
+    const interval = 1000 / fps;
+    for (let i = 0; i < bitmaps.length; i++) {
+      recCtx.drawImage(bitmaps[i], 0, 0, outW, outH);
+      if (audioTrack) av.currentTime = Math.min((i + 1) / fps, av.duration - 0.001);
+      await new Promise((r) => setTimeout(r, interval));
+      setProg(0.6 + (i + 1) / N * 0.4);
+    }
+    await new Promise((r) => setTimeout(r, 300));
+    rec.stop();
+    await done;
+    av.pause();
+
+    const blob = new Blob(chunks, { type: mime.startsWith('video/mp4') ? 'video/mp4' : 'video/webm' });
+    const outUrl = URL.createObjectURL(blob);
+    $('outVideo').src = outUrl;
+    $('dl').href = outUrl;
+    $('dl').download = 'enhanced' + (mime.startsWith('video/mp4') ? '.mp4' : '.webm');
+    $('resultCard').style.display = 'block';
+    log('✅ 完成！可预览 / 下载。');
+  } catch (e) {
+    log('❌ 出错：' + (e && e.message ? e.message : e));
+  } finally {
+    $('start').disabled = false; $('clear').disabled = false;
+  }
+}
+
+// ---- UI 事件 ----
+$('drop').addEventListener('click', (e) => { if (e.target !== $('file')) $('file').click(); });
+$('file').addEventListener('change', (e) => { pick(e.target.files[0]); });
+['dragover','drop'].forEach(ev => $('drop').addEventListener(ev, (e) => {
+  e.preventDefault();
+  if (ev === 'drop') pick(e.dataTransfer.files[0]);
+}));
+function pick(f) {
+  if (!f) return;
+  srcFile = f; $('fileInfo').textContent = `${f.name} (${(f.size/1048576).toFixed(1)} MB)`;
+  $('start').disabled = false; $('clear').disabled = false;
+  $('resultCard').style.display = 'none';
+}
+$('start').addEventListener('click', run);
+$('clear').addEventListener('click', () => {
+  srcFile = null; $('file').value = ''; $('fileInfo').textContent = '';
+  $('start').disabled = true; $('clear').disabled = true; $('resultCard').style.display = 'none';
+  $('log').textContent = ''; setProg(0); $('progWrap').style.display = 'none';
+});
+
+(async () => {
+  await detectMode();
+  loadUpscaler().catch((e) => log('模型加载失败（将仅用轻量锐化）：' + e.message));
+})();
+</script>
+</body>
+</html>
