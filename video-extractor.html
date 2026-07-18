@@ -2,682 +2,751 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>视频提取器</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#6366f1',
-            secondary: '#8b5cf6',
-            success: '#10b981',
-            danger: '#ef4444',
-          },
-          animation: {
-            'spin': 'spin 1s linear infinite',
-            'fadeIn': 'fadeIn 0.5s ease-out',
-            'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          },
-          keyframes: {
-            fadeIn: {
-              '0%': { opacity: '0', transform: 'translateY(20px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            }
-          }
-        }
-      }
-    }
-  </script>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-primary: #ffffff;
+      --text-secondary: #8888aa;
+      --accent-blue: #6366f1;
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background: var(--bg-primary);
+      color: var(--text-primary);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
-    .glass-card {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* 背景装饰 */
+    .bg-glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
     }
-    .input-glow:focus {
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      position: relative;
+      z-index: 1;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-      transition: all 0.3s ease;
+
+    /* 头部 */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
     }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
     }
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 14px;
     }
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
+
+    .platform-tags {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 16px;
     }
-    .btn-success {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      transition: all 0.3s ease;
+
+    .platform-tag {
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 13px;
+      transition: all 0.3s;
     }
-    .btn-success:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+
+    .platform-tag:hover {
+      border-color: var(--accent-blue);
+      background: rgba(99, 102, 241, 0.1);
     }
-    .quality-card-selected {
-      border-color: #6366f1;
-      background: rgba(99, 102, 241, 0.15);
+
+    /* 输入区域 */
+    .input-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 24px;
     }
-    .loading-bar {
+
+    .input-wrapper {
+      display: flex;
+      gap: 10px;
+      flex-direction: column;
+    }
+
+    @media (min-width: 640px) {
+      .input-wrapper {
+        flex-direction: row;
+      }
+    }
+
+    .url-input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .url-input:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .url-input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .extract-btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .extract-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .extract-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* 进度条 */
+    .progress-bar {
+      height: 3px;
+      background: var(--bg-secondary);
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar.active {
+      display: block;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 2px;
       animation: loading 1.5s ease-in-out infinite;
     }
+
     @keyframes loading {
-      0% { width: 0%; }
-      50% { width: 70%; }
-      100% { width: 100%; }
+      0% { width: 0%; margin-left: 0; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
     }
-    .platform-tag {
-      transition: all 0.3s ease;
+
+    /* 结果卡片 */
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 24px;
+      animation: fadeInUp 0.4s ease;
     }
-    .platform-tag:hover {
-      background: rgba(99, 102, 241, 0.2);
-      border-color: rgba(99, 102, 241, 0.5);
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
+
+    .video-preview {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .video-preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .video-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .info-item .label {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .info-item .value {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-download {
+      flex: 1;
+      min-width: 120px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-download:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-secondary-action {
+      flex: 1;
+      min-width: 120px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-secondary-action:hover {
+      border-color: var(--accent-blue);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    /* Toast 提示 */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
     .toast {
-      animation: slideIn 0.3s ease-out;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      pointer-events: auto;
+      backdrop-filter: blur(10px);
+      max-width: 90vw;
+      text-align: center;
     }
-    @keyframes slideIn {
-      0% { transform: translateX(100%); opacity: 0; }
-      100% { transform: translateX(0); opacity: 1; }
+
+    .toast.success {
+      background: rgba(16, 185, 129, 0.9);
+      color: white;
+    }
+
+    .toast.error {
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+    }
+
+    .toast.info {
+      background: rgba(99, 102, 241, 0.9);
+      color: white;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; }
+      to { opacity: 0; transform: translateY(-10px); }
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* 配置弹窗 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      animation: modalIn 0.3s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal h3 {
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    .modal label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .modal input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .modal-actions button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .modal-actions .btn-cancel {
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+    }
+
+    .modal-actions .btn-save {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    /* 顶部工具栏 */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .toolbar-title {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .settings-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.3s;
+    }
+
+    .settings-btn:hover {
+      border-color: var(--accent-blue);
+      color: var(--text-primary);
+    }
+
+    /* 加载动画 */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
-<body class="text-white">
-  <div class="max-w-6xl mx-auto px-4 py-8">
-    <div class="text-center mb-12 animate-fadeIn">
-      <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-4">
-        🎬 视频提取器
-      </h1>
-      <p class="text-gray-400 text-lg mb-6">
-        输入视频链接，一键提取、下载并分享
-      </p>
-      <div class="flex justify-center gap-4 flex-wrap">
-        <span class="platform-tag px-4 py-2 rounded-full bg-white/5 border border-gray-700 text-gray-400 text-sm">抖音</span>
-        <span class="platform-tag px-4 py-2 rounded-full bg-white/5 border border-gray-700 text-gray-400 text-sm">B站</span>
-        <span class="platform-tag px-4 py-2 rounded-full bg-white/5 border border-gray-700 text-gray-400 text-sm">小红书</span>
-        <span class="platform-tag px-4 py-2 rounded-full bg-white/5 border border-gray-700 text-gray-400 text-sm">快手</span>
+<body>
+  <div class="bg-glow"></div>
+  
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- 配置弹窗 -->
+  <div class="modal-overlay" id="configModal">
+    <div class="modal">
+      <h3>⚙️ Supabase 配置</h3>
+      <label>Project URL</label>
+      <input type="text" id="supabaseUrl" placeholder="https://xxxx.supabase.co">
+      <label>Public Key</label>
+      <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeConfig()">取消</button>
+        <button class="btn-save" onclick="saveConfig()">保存</button>
       </div>
     </div>
-
-    <div class="glass-card rounded-2xl p-6 mb-6 animate-fadeIn">
-      <div class="flex flex-col md:flex-row gap-4">
-        <input
-          type="text"
-          id="urlInput"
-          placeholder="请输入抖音、B站、小红书、快手等视频分享链接..."
-          class="flex-1 px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none input-glow"
-          onkeypress="if(event.key === 'Enter') extractVideo()"
-        />
-        <button
-          onclick="extractVideo()"
-          id="extractBtn"
-          class="btn-primary px-8 py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          提取视频
-        </button>
-      </div>
-      <div id="loadingBar" class="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden hidden">
-        <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 loading-bar"></div>
-      </div>
-    </div>
-
-    <div id="videoResult" class="hidden animate-fadeIn">
-      <div class="glass-card rounded-2xl p-6 mb-6">
-        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden mb-6">
-          <video controls class="w-full h-full object-contain" id="videoPlayer"></video>
-        </div>
-
-        <div class="flex flex-wrap gap-4 mb-6 p-4 bg-white/5 rounded-xl">
-          <div class="flex items-center gap-2 text-gray-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span class="font-semibold">标题:</span>
-            <span class="text-gray-400 truncate max-w-xs" id="videoTitle">加载中...</span>
-          </div>
-          <div class="flex items-center gap-2 text-gray-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span class="font-semibold">时长:</span>
-            <span class="text-gray-400" id="videoDuration">--:--</span>
-          </div>
-          <div class="flex items-center gap-2 text-gray-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span class="font-semibold">分辨率:</span>
-            <span class="text-gray-400" id="videoResolution">--</span>
-          </div>
-          <div class="flex items-center gap-2 text-gray-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            <span class="font-semibold">帧率:</span>
-            <span class="text-gray-400" id="videoFps">-- fps</span>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-4">
-          <button onclick="downloadVideo()" class="btn-success px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            下载视频
-          </button>
-          <button onclick="toggleQualitySection()" class="btn-secondary px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            画质增强
-          </button>
-          <button onclick="toggleShareSection()" class="btn-secondary px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m17 12-5 5-5-5"/></svg>
-            分享
-          </button>
-        </div>
-      </div>
-
-      <div id="qualitySection" class="hidden glass-card rounded-2xl p-6 mb-6 animate-fadeIn">
-        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/></svg>
-          画质增强设置
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div onclick="selectQuality('hd')" id="hdCard" class="p-4 rounded-xl border-2 border-gray-700 bg-white/5 cursor-pointer hover:border-indigo-500/50 transition-all">
-            <h4 class="font-semibold text-white mb-2">高清增强</h4>
-            <p class="text-gray-400 text-sm">提升分辨率至720p，优化画面细节</p>
-          </div>
-          <div onclick="selectQuality('fullhd')" id="fullhdCard" class="p-4 rounded-xl border-2 border-gray-700 bg-white/5 cursor-pointer hover:border-indigo-500/50 transition-all">
-            <h4 class="font-semibold text-white mb-2">超清增强</h4>
-            <p class="text-gray-400 text-sm">提升分辨率至1080p，增强画质</p>
-          </div>
-          <div onclick="selectQuality('ultrahd')" id="ultrahdCard" class="p-4 rounded-xl border-2 border-gray-700 bg-white/5 cursor-pointer hover:border-indigo-500/50 transition-all">
-            <h4 class="font-semibold text-white mb-2">蓝光增强</h4>
-            <p class="text-gray-400 text-sm">提升分辨率至4K，极致画质体验</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label class="block text-gray-300 font-semibold mb-2">目标分辨率:</label>
-            <select id="resolutionSelect" class="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:outline-none input-glow">
-              <option value="720p">720p (高清)</option>
-              <option value="1080p">1080p (全高清)</option>
-              <option value="2K">2K (QHD)</option>
-              <option value="4K">4K (超高清)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-gray-300 font-semibold mb-2">目标帧率:</label>
-            <select id="frameRateSelect" class="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-700 text-white focus:outline-none input-glow">
-              <option value="30">30 fps (标准)</option>
-              <option value="60">60 fps (流畅)</option>
-              <option value="120">120 fps (极速)</option>
-            </select>
-          </div>
-        </div>
-        <button onclick="applyQuality()" class="btn-primary w-full py-3 rounded-xl text-white font-semibold">
-          应用增强
-        </button>
-      </div>
-
-      <div id="shareSection" class="hidden glass-card rounded-2xl p-6 mb-6 animate-fadeIn">
-        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m17 12-5 5-5-5"/></svg>
-          分享视频
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button onclick="toggleQRCode()" class="flex flex-col items-center justify-center p-6 rounded-xl bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 transition-all">
-            <svg viewBox="0 0 24 24" fill="#07c160" class="w-12 h-12 mb-3"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.322-1.223a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.269-.03-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"/></svg>
-            <span className="text-green-400 font-semibold">微信好友</span>
-          </button>
-          <button onclick="copyLink()" class="flex flex-col items-center justify-center p-6 rounded-xl bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" class="w-12 h-12 mb-3"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            <span className="text-indigo-400 font-semibold">复制链接</span>
-          </button>
-        </div>
-
-        <div id="qrCodeSection" class="hidden mt-6 flex flex-col items-center p-6 bg-white rounded-xl">
-          <canvas id="qrCodeCanvas" width={200} height={200} className="mb-4"></canvas>
-          <p className="text-gray-700">扫码分享给微信好友</p>
-          <button onclick="toggleQRCode()" className="mt-4 text-gray-500 hover:text-gray-700">
-            关闭二维码
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
   </div>
 
+  <div class="container">
+    <!-- 头部 -->
+    <div class="header">
+      <h1>🎬 视频提取器</h1>
+      <p>输入视频链接，一键提取、下载</p>
+      <div class="platform-tags">
+        <span class="platform-tag">抖音</span>
+        <span class="platform-tag">B站</span>
+        <span class="platform-tag">小红书</span>
+        <span class="platform-tag">快手</span>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <span class="toolbar-title">纯前端版 · 无后端</span>
+      <button class="settings-btn" onclick="openConfig()">⚙️ 配置</button>
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="input-section">
+      <div class="input-wrapper">
+        <input type="text" class="url-input" id="urlInput" 
+               placeholder="粘贴抖音/B站/小红书/快手视频分享链接..." 
+               onkeypress="if(event.key==='Enter')extract()">
+        <button class="extract-btn" id="extractBtn" onclick="extract()">
+          <span id="btnText">提取视频</span>
+        </button>
+      </div>
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- 结果区域 -->
+    <div id="resultArea"></div>
+
+    <!-- 空状态 -->
+    <div class="empty-state" id="emptyState">
+      <div class="icon">📥</div>
+      <p>输入视频链接开始提取</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    let currentVideo = null;
-    let selectedQuality = 'fullhd';
-    let selectedResolution = '1080p';
-    let selectedFrameRate = '60';
+    // ========== 配置 ==========
+    let SUPABASE_URL = localStorage.getItem('sb_url') || '';
+    let SUPABASE_KEY = localStorage.getItem('sb_key') || '';
+    let supabase = null;
 
-    const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-    const CORS_PROXY_ALT = 'https://cors-anywhere.herokuapp.com/';
-    
-    const VIDEO_APIS = [
-      'https://apione.apibyte.cn/api/video6',
-      'https://api.pingcc.cn/api/video',
-      'https://www.mojieai.cn/api/video',
-      'https://api.wookong.xyz/api/video/getVideoInfo',
-      'https://api.songshuhui.net/api/video',
-      'https://api.censhuai.cn/api/video',
-      'https://api.vvhan.com/api/video',
-    ];
-
-    function extractUrlFromText(text) {
-      const urlPattern = /https?:\/\/[^\s,，。！!？?]+/g;
-      const matches = text.match(urlPattern);
-      if (matches) {
-        for (const match of matches) {
-          const cleanUrl = match.replace(/[，。！!？?]$/, '');
-          if (detectPlatform(cleanUrl)) {
-            return cleanUrl;
-          }
-        }
-        return matches[0].replace(/[，。！!？?]$/, '');
+    function initSupabase() {
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+        openConfig();
+        showToast('请先配置 Supabase 项目', 'info');
+        return false;
       }
-      return text;
+      try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        return true;
+      } catch (e) {
+        showToast('Supabase 初始化失败: ' + e.message, 'error');
+        return false;
+      }
     }
 
-    function detectPlatform(url) {
-      if (url.includes('douyin') || url.includes('tiktok') || url.includes('v.douyin')) return 'douyin';
-      if (url.includes('bilibili') || url.includes('b23') || url.includes('bilibili.com')) return 'bilibili';
-      if (url.includes('xiaohongshu') || url.includes('xhs') || url.includes('xiaohongshu.com')) return 'xiaohongshu';
-      if (url.includes('kuaishou') || url.includes('ks') || url.includes('kuaishou.com')) return 'kuaishou';
-      return null;
+    function openConfig() {
+      document.getElementById('supabaseUrl').value = SUPABASE_URL;
+      document.getElementById('supabaseKey').value = SUPABASE_KEY;
+      document.getElementById('configModal').classList.add('active');
     }
 
+    function closeConfig() {
+      document.getElementById('configModal').classList.remove('active');
+    }
+
+    function saveConfig() {
+      SUPABASE_URL = document.getElementById('supabaseUrl').value.trim();
+      SUPABASE_KEY = document.getElementById('supabaseKey').value.trim();
+      localStorage.setItem('sb_url', SUPABASE_URL);
+      localStorage.setItem('sb_key', SUPABASE_KEY);
+      closeConfig();
+      if (initSupabase()) {
+        showToast('配置已保存', 'success');
+      }
+    }
+
+    // ========== Toast ==========
     function showToast(message, type = 'info') {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
-      toast.className = `toast px-4 py-3 rounded-xl shadow-lg ${
-        type === 'success' ? 'bg-green-500/90' : 
-        type === 'error' ? 'bg-red-500/90' : 
-        type === 'info' ? 'bg-blue-500/90' : 'bg-gray-500/90'
-      } text-white font-semibold`;
+      toast.className = `toast ${type}`;
       toast.textContent = message;
       container.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
     }
 
-    async function extractVideo() {
-      const inputText = document.getElementById('urlInput').value.trim();
-      if (!inputText) {
+    // ========== 平台检测 ==========
+    function detectPlatform(url) {
+      if (url.includes('douyin.com') || url.includes('v.douyin.com')) return 'douyin';
+      if (url.includes('bilibili.com') || url.includes('b23.tv')) return 'bilibili';
+      if (url.includes('xiaohongshu.com') || url.includes('xhs.link')) return 'xiaohongshu';
+      if (url.includes('kuaishou.com') || url.includes('ks.com')) return 'kuaishou';
+      return null;
+    }
+
+    // ========== 提取视频 ==========
+    async function extract() {
+      const urlInput = document.getElementById('urlInput');
+      const url = urlInput.value.trim();
+      
+      if (!url) {
         showToast('请输入视频链接', 'error');
         return;
       }
 
-      const url = extractUrlFromText(inputText);
-      
-      if (url !== inputText) {
-        document.getElementById('urlInput').value = url;
-        showToast('已自动提取链接', 'info');
-      }
-
       const platform = detectPlatform(url);
       if (!platform) {
-        showToast('暂不支持该平台', 'error');
+        showToast('暂不支持该平台，请检查链接', 'error');
         return;
       }
 
-      const extractBtn = document.getElementById('extractBtn');
-      const loadingBar = document.getElementById('loadingBar');
-      const videoResult = document.getElementById('videoResult');
-
-      extractBtn.disabled = true;
-      extractBtn.innerHTML = '<span class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>提取中...';
-      loadingBar.classList.remove('hidden');
-      videoResult.classList.add('hidden');
+      // UI 状态
+      const btn = document.getElementById('extractBtn');
+      const btnText = document.getElementById('btnText');
+      const progressBar = document.getElementById('progressBar');
+      const emptyState = document.getElementById('emptyState');
+      
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> 提取中...';
+      progressBar.classList.add('active');
+      emptyState.style.display = 'none';
 
       try {
-        let videoData = null;
-        
-        for (const apiUrl of VIDEO_APIS) {
-          try {
-            const response = await fetch(`${apiUrl}?url=${encodeURIComponent(url)}`);
-            const data = await response.json();
-            
-            if (data.code === 200 || data.code === 1) {
-              const result = data.data || data;
-              if (result.video_url || result.playUrl || result.url) {
-                videoData = {
-                  title: result.title || result.desc || `${platform} video`,
-                  downloadUrl: result.video_url || result.playUrl || result.url,
-                  thumbnail: result.cover_url || result.cover || '',
-                  duration: '01:00',
-                  resolution: '1080p',
-                  fps: 30,
-                  platform: platform,
-                };
-                break;
-              }
-            }
-          } catch (e) {
-            console.log('API failed:', apiUrl, e);
-          }
+        if (!initSupabase()) throw new Error('未配置 Supabase');
+
+        // 调用 Supabase Edge Function
+        const { data, error } = await supabase.functions.invoke('video-extract', {
+          body: { url, platform }
+        });
+
+        if (error) {
+          throw new Error(error.message || '提取失败');
         }
 
-        if (!videoData) {
-          videoData = await extractWithDouyinDirect(url);
-        }
-
-        if (!videoData && platform === 'douyin') {
-          videoData = await extractWithDouyinAPI(url);
-        }
-
-        if (!videoData) {
-          videoData = await extractWithUniversalAPI(url);
-        }
-
-        if (videoData) {
-          currentVideo = videoData;
-          displayVideo(videoData);
+        if (data.success && data.video) {
+          renderResult(data.video);
           showToast('视频提取成功！', 'success');
         } else {
-          showToast('提取失败，该视频可能是私密或受限制视频，或当前所有API源均不可用', 'error');
+          showToast(data.message || '提取失败', 'error');
+          emptyState.style.display = 'block';
         }
-      } catch (error) {
-        console.error('提取失败:', error);
-        showToast('提取视频失败，请检查网络连接', 'error');
+      } catch (e) {
+        showToast(e.message || '网络错误，请检查连接', 'error');
+        emptyState.style.display = 'block';
       } finally {
-        extractBtn.disabled = false;
-        extractBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>提取视频';
-        loadingBar.classList.add('hidden');
+        btn.disabled = false;
+        btnText.textContent = '提取视频';
+        progressBar.classList.remove('active');
       }
     }
 
-    async function extractWithDouyinDirect(url) {
-      try {
-        const shortUrl = url;
-        const response = await fetch(CORS_PROXY + encodeURIComponent(shortUrl));
-        const html = await response.text();
-        
-        const urlMatch = html.match(/playAddr["']?\s*[:=]\s*["']([^"']+)["']/);
-        if (urlMatch) {
-          return {
-            title: '抖音视频',
-            downloadUrl: urlMatch[1],
-            thumbnail: '',
-            duration: '01:00',
-            resolution: '1080p',
-            fps: 30,
-            platform: 'douyin',
-          };
-        }
-        
-        const videoTagMatch = html.match(/<video[^>]*src=["']([^"']+)["']/);
-        if (videoTagMatch) {
-          return {
-            title: '抖音视频',
-            downloadUrl: videoTagMatch[1],
-            thumbnail: '',
-            duration: '01:00',
-            resolution: '1080p',
-            fps: 30,
-            platform: 'douyin',
-          };
-        }
-        
-        const playUrlMatch = html.match(/playUrl["']?\s*[:=]\s*["']([^"']+)["']/);
-        if (playUrlMatch) {
-          return {
-            title: '抖音视频',
-            downloadUrl: playUrlMatch[1],
-            thumbnail: '',
-            duration: '01:00',
-            resolution: '1080p',
-            fps: 30,
-            platform: 'douyin',
-          };
-        }
-      } catch (e) {
-        console.log('Direct extraction failed:', e);
-      }
-      return null;
-    }
-
-    async function extractWithDouyinAPI(url) {
-      try {
-        const videoId = url.match(/v\.douyin\.com\/([^\/]+)/);
-        if (videoId) {
-          const apiUrl = `https://www.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=${videoId[1]}`;
-          const response = await fetch(CORS_PROXY + encodeURIComponent(apiUrl));
-          const data = await response.json();
+    // ========== 渲染结果 ==========
+    function renderResult(video) {
+      const area = document.getElementById('resultArea');
+      area.innerHTML = `
+        <div class="result-card">
+          <div class="video-preview">
+            <video controls poster="${video.thumbnail || ''}">
+              <source src="${video.downloadUrl}" type="video/mp4">
+              您的浏览器不支持视频播放
+            </video>
+          </div>
           
-          if (data.aweme_detail && data.aweme_detail.video) {
-            const video = data.aweme_detail.video;
-            const playAddr = video.play_addr || video.download_addr;
-            if (playAddr && playAddr.url_list && playAddr.url_list.length > 0) {
-              return {
-                title: data.aweme_detail.desc || '抖音视频',
-                downloadUrl: playAddr.url_list[0],
-                thumbnail: video.cover && video.cover.url_list ? video.cover.url_list[0] : '',
-                duration: data.aweme_detail.duration ? formatDuration(data.aweme_detail.duration) : '01:00',
-                resolution: '1080p',
-                fps: 30,
-                platform: 'douyin',
-              };
-            }
-          }
-        }
-      } catch (e) {
-        console.log('Douyin API extraction failed:', e);
-      }
-      return null;
+          <div class="video-info">
+            <div class="info-item">
+              <span class="label">标题:</span>
+              <span class="value">${video.title}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">时长:</span>
+              <span class="value">${video.duration || '-'}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">分辨率:</span>
+              <span class="value">${video.resolution || '-'}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">帧率:</span>
+              <span class="value">${video.fps || '-'}</span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn-download" onclick="downloadVideo('${video.downloadUrl}', '${video.title}')">
+              ⬇️ 下载视频
+            </button>
+            <button class="btn-secondary-action" onclick="copyLink()">
+              🔗 复制链接
+            </button>
+          </div>
+        </div>
+      `;
     }
 
-    async function extractWithUniversalAPI(url) {
-      const universalApis = [
-        { url: 'https://api.vvhan.com/api/video', param: 'url' },
-        { url: 'https://api.lkblog.net/api/video', param: 'url' },
-        { url: 'https://api.touhou.video/api/video', param: 'url' },
-        { url: 'https://api.hanximeng.com/api/video', param: 'url' },
-        { url: 'https://api.baiyug.cn/api/video', param: 'url' },
-      ];
-
-      for (const api of universalApis) {
-        try {
-          const response = await fetch(`${api.url}?${api.param}=${encodeURIComponent(url)}`);
-          const data = await response.json();
-          
-          if (data.success || data.code === 200 || data.code === 1) {
-            const result = data.data || data;
-            if (result.video_url || result.playUrl || result.url || result.video) {
-              return {
-                title: result.title || result.desc || '视频',
-                downloadUrl: result.video_url || result.playUrl || result.url || result.video,
-                thumbnail: result.cover_url || result.cover || '',
-                duration: '01:00',
-                resolution: '1080p',
-                fps: 30,
-                platform: 'unknown',
-              };
-            }
-          }
-        } catch (e) {
-          console.log('Universal API failed:', api.url, e);
-        }
-      }
-      return null;
+    // ========== 下载视频 ==========
+    function downloadVideo(url, title) {
+      // 创建临时链接下载
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}.mp4`;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('开始下载...', 'success');
     }
 
-    function formatDuration(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return mins.toString().padStart(2, '0') + ':' + secs.toString().padStart(2, '0');
-    }
-
-    function displayVideo(video) {
-      const videoResult = document.getElementById('videoResult');
-      const videoPlayer = document.getElementById('videoPlayer');
-      
-      videoPlayer.src = video.downloadUrl;
-      
-      document.getElementById('videoTitle').textContent = video.title;
-      document.getElementById('videoDuration').textContent = video.duration || '01:00';
-      document.getElementById('videoResolution').textContent = video.resolution || '1080p';
-      document.getElementById('videoFps').textContent = (video.fps || 30) + ' fps';
-      
-      videoResult.classList.remove('hidden');
-    }
-
-    function downloadVideo() {
-      if (!currentVideo) return;
-      const link = document.createElement('a');
-      link.href = currentVideo.downloadUrl;
-      link.download = `${currentVideo.title}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast('开始下载视频...', 'success');
-    }
-
-    function toggleQualitySection() {
-      const section = document.getElementById('qualitySection');
-      section.classList.toggle('hidden');
-    }
-
-    function toggleShareSection() {
-      const section = document.getElementById('shareSection');
-      section.classList.toggle('hidden');
-    }
-
-    function selectQuality(quality) {
-      selectedQuality = quality;
-      
-      document.querySelectorAll('[id$="Card"]').forEach(card => {
-        card.classList.remove('quality-card-selected');
-        card.classList.add('border-gray-700', 'bg-white/5');
-      });
-      
-      const selectedCard = document.getElementById(quality + 'Card');
-      selectedCard.classList.remove('border-gray-700', 'bg-white/5');
-      selectedCard.classList.add('quality-card-selected');
-
-      const options = {
-        hd: { resolution: '720p', fps: '30' },
-        fullhd: { resolution: '1080p', fps: '60' },
-        ultrahd: { resolution: '4K', fps: '60' },
-      };
-      
-      document.getElementById('resolutionSelect').value = options[quality].resolution;
-      document.getElementById('frameRateSelect').value = options[quality].fps;
-    }
-
-    function applyQuality() {
-      if (!currentVideo) return;
-      
-      selectedResolution = document.getElementById('resolutionSelect').value;
-      selectedFrameRate = document.getElementById('frameRateSelect').value;
-      
-      showToast(`正在应用${selectedResolution}分辨率、${selectedFrameRate}fps帧率增强...`, 'info');
-      
-      setTimeout(() => {
-        currentVideo.resolution = selectedResolution;
-        currentVideo.fps = parseInt(selectedFrameRate);
-        
-        document.getElementById('videoResolution').textContent = selectedResolution;
-        document.getElementById('videoFps').textContent = selectedFrameRate + ' fps';
-        
-        showToast('画质增强已应用！', 'success');
-      }, 1500);
-    }
-
+    // ========== 复制链接 ==========
     function copyLink() {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        showToast('链接已复制到剪贴板', 'success');
-      }).catch(() => {
-        showToast('复制失败，请手动复制', 'error');
-      });
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => showToast('链接已复制', 'success'))
+        .catch(() => showToast('复制失败', 'error'));
     }
 
-    function toggleQRCode() {
-      const section = document.getElementById('qrCodeSection');
-      section.classList.toggle('hidden');
-      
-      if (!section.classList.contains('hidden')) {
-        generateQRCode(window.location.href);
+    // ========== 初始化 ==========
+    (function init() {
+      if (SUPABASE_URL && SUPABASE_KEY) {
+        initSupabase();
       }
-    }
-
-    function generateQRCode(text) {
-      const canvas = document.getElementById('qrCodeCanvas');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const qrSize = 4;
-      const data = textToBinary(text);
-      const version = 1;
-      const qrMatrix = createQRMatrix(data, version);
-      
-      const scale = canvas.width / qrMatrix.length;
-      
-      for (let y = 0; y < qrMatrix.length; y++) {
-        for (let x = 0; x < qrMatrix[y].length; x++) {
-          if (qrMatrix[y][x]) {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(x * scale, y * scale, scale, scale);
-          }
-        }
-      }
-    }
-
-    function textToBinary(text) {
-      let binary = '';
-      for (let i = 0; i < text.length; i++) {
-        binary += text.charCodeAt(i).toString(2).padStart(8, '0');
-      }
-      return binary;
-    }
-
-    function createQRMatrix(data, version) {
-      const size = 21 + (version - 1) * 4;
-      const matrix = Array(size).fill(null).map(() => Array(size).fill(false));
-      
-      for (let i = 0; i < 7; i++) {
-        for (let j = 0; j < 7; j++) {
-          if ((i < 7 && j < 7) || (i < 7 && j > size - 8) || (i > size - 8 && j < 7)) {
-            const pattern = [
-              [1,1,1,1,1,1,1],
-              [1,0,0,0,0,0,1],
-              [1,0,1,1,1,0,1],
-              [1,0,1,1,1,0,1],
-              [1,0,1,1,1,0,1],
-              [1,0,0,0,0,0,1],
-              [1,1,1,1,1,1,1],
-            ];
-            const px = (i < 7 ? 0 : i > size - 8 ? size - 7 : 0);
-            const py = (j < 7 ? 0 : j > size - 8 ? size - 7 : 0);
-            matrix[py + (i < 7 ? i : (i > size - 8 ? i - size + 7 : 0))][px + (j < 7 ? j : (j > size - 8 ? j - size + 7 : 0))] = pattern[i < 7 ? i : (i > size - 8 ? i - size + 7 : 0)][j < 7 ? j : (j > size - 8 ? j - size + 7 : 0)];
-          }
-        }
-      }
-      
-      let dataIndex = 0;
-      for (let y = size - 1; y >= 0; y -= 2) {
-        for (let x = size - 1; x >= 0; x--) {
-          if (!matrix[y][x] && dataIndex < data.length) {
-            matrix[y][x] = data[dataIndex] === '1';
-            dataIndex++;
-          }
-          if (!matrix[y-1]?.[x] && dataIndex < data.length) {
-            matrix[y-1][x] = data[dataIndex] === '1';
-            dataIndex++;
-          }
-        }
-      }
-      
-      return matrix;
-    }
-
-    selectQuality('fullhd');
+    })();
   </script>
 </body>
 </html>

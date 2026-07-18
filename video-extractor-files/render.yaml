@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: video-extractor
+    env: node
+    plan: starter
+    buildCommand: |
+      npm install
+      npm run build
+      pip install yt-dlp
+    startCommand: node cloud-server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: YT_DLP_PATH
+        value: /opt/render/project/src/.venv/bin/yt-dlp
+    healthCheckPath: /

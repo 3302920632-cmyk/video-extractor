@@ -12,11 +12,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 关键：绑定 0.0.0.0 让外网可访问
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -153,9 +148,6 @@ async function parseDouyin(url) {
 
 async function parseBilibili(url) {
   return new Promise((resolve) => {
-    // 尝试使用系统安装的 yt-dlp
-    const ytDlpPath = process.env.YT_DLP_PATH || '/usr/local/bin/yt-dlp';
-    
     const args = [
       '--no-warnings',
       '--ignore-errors',
@@ -165,26 +157,18 @@ async function parseBilibili(url) {
     ];
     args.push(url);
 
+    const ytDlpPath = process.env.YT_DLP_PATH || '/usr/local/bin/yt-dlp';
     const ytDlp = spawn(ytDlpPath, args, {
-      env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin:/usr/bin' }
+      env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' }
     });
     let output = '';
-    let errored = false;
 
     ytDlp.stdout.on('data', (data) => output += data.toString());
     ytDlp.stderr.on('data', () => {});
     
-    ytDlp.on('error', () => {
-      if (!errored) {
-        errored = true;
-        resolve(null);
-      }
-    });
+    ytDlp.on('error', () => resolve(null));
 
     ytDlp.on('close', (code) => {
-      if (errored) return;
-      errored = true;
-      
       try {
         if (output) {
           const info = JSON.parse(output);
@@ -215,11 +199,8 @@ async function parseBilibili(url) {
     });
 
     setTimeout(() => {
-      if (!errored) {
-        errored = true;
-        ytDlp.kill();
-        resolve(null);
-      }
+      ytDlp.kill();
+      resolve(null);
     }, 45000);
   });
 }
@@ -326,10 +307,12 @@ app.get('/api/history', (req, res) => {
   res.json({ success: true, data: [] });
 });
 
-// 静态资源
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
