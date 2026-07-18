@@ -10,59 +10,69 @@
   body {
     margin:0; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;
     background:radial-gradient(1200px 600px at 80% -10%, #e8f0ff 0%, var(--bg) 60%);
-    color:var(--ink); min-height:100vh; padding:32rpx;
+    color:var(--ink); min-height:100vh; padding:24px;
   }
-  .wrap { max-width:720px; margin:0 auto; padding:28rpx; }
-  h1 { font-size:30rpx; font-weight:900; letter-spacing:-0.5px; margin:0 0 6rpx; }
-  .sub { color:#5b6577; font-size:24rpx; margin:0 0 22rpx; line-height:1.6; }
+  .wrap { max-width:720px; margin:0 auto; padding:20px; }
+  h1 { font-size:28px; font-weight:900; letter-spacing:-0.5px; margin:0 0 6px; }
+  .sub { color:#5b6577; font-size:15px; margin:0 0 22px; line-height:1.6; }
   .card {
-    background:var(--mint); border:3rpx solid var(--ink); border-radius:30rpx;
-    box-shadow:6rpx 6rpx 0 var(--ink); padding:24rpx; margin-bottom:20rpx;
+    background:var(--mint); border:3px solid var(--ink); border-radius:30px;
+    box-shadow:6px 6px 0 var(--ink); padding:20px; margin-bottom:18px;
   }
   .drop {
-    border:3rpx dashed var(--ink); border-radius:24rpx; padding:40rpx 20rpx; text-align:center;
+    border:3px dashed var(--ink); border-radius:24px; padding:34px 20px; text-align:center;
     cursor:pointer; transition:transform .15s ease, background .15s ease; background:#fffaf0;
   }
-  .drop:hover { transform:translate(-2rpx,-2rpx); background:#fff; }
-  .drop b { font-size:26rpx; }
-  .drop small { display:block; color:#5b6577; margin-top:8rpx; font-size:22rpx; }
+  .drop:hover { transform:translate(-2px,-2px); background:#fff; }
+  .drop b { font-size:17px; }
+  .drop small { display:block; color:#5b6577; margin-top:8px; font-size:13px; }
   input[type=file] { display:none; }
   .badge {
-    display:inline-block; padding:6rpx 16rpx; border-radius:999rpx; font-size:21rpx; font-weight:700;
-    border:2rpx solid var(--ink); margin-left:8rpx;
+    display:inline-block; padding:4px 12px; border-radius:999px; font-size:13px; font-weight:700;
+    border:2px solid var(--ink); margin-left:8px; vertical-align:middle;
   }
   .badge.real { background:var(--lime); }
   .badge.lite { background:var(--peach); }
-  .row { display:flex; gap:14rpx; align-items:center; flex-wrap:wrap; margin-top:16rpx; }
+  .badge.wait { background:#fff; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:16px; }
   button {
-    font-family:inherit; font-weight:800; font-size:24rpx; padding:16rpx 28rpx; border-radius:999rpx;
-    border:3rpx solid var(--ink); background:var(--lime); box-shadow:4rpx 4rpx 0 var(--ink);
+    font-family:inherit; font-weight:800; font-size:15px; padding:12px 22px; border-radius:999px;
+    border:3px solid var(--ink); background:var(--lime); box-shadow:4px 4px 0 var(--ink);
     cursor:pointer; transition:transform .1s ease;
   }
-  button:active { transform:translate(2rpx,2rpx); box-shadow:1rpx 1rpx 0 var(--ink); }
+  button:active { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
   button:disabled { opacity:.5; cursor:not-allowed; }
   button.ghost { background:#fff; }
-  .progress { height:18rpx; background:#fff; border:2rpx solid var(--ink); border-radius:999rpx; overflow:hidden; margin-top:18rpx; }
+  select {
+    font-family:inherit; font-weight:800; font-size:14px; padding:11px 14px; border-radius:999px;
+    border:3px solid var(--ink); background:#fff; box-shadow:3px 3px 0 var(--ink); cursor:pointer;
+  }
+  .progress { height:16px; background:#fff; border:2px solid var(--ink); border-radius:999px; overflow:hidden; margin-top:18px; }
   .progress > i { display:block; height:100%; width:0%; background:var(--blue); transition:width .2s ease; }
-  .log { font-size:21rpx; color:#3a4250; margin-top:14rpx; white-space:pre-wrap; line-height:1.5; max-height:240rpx; overflow:auto; }
-  .result video { width:100%; border-radius:18rpx; border:2rpx solid var(--ink); margin-top:14rpx; background:#000; }
-  .tip { font-size:21rpx; color:#5b6577; line-height:1.6; }
+  .log { font-size:13px; color:#3a4250; margin-top:14px; white-space:pre-wrap; line-height:1.5; max-height:240px; overflow:auto; }
+  .result video { width:100%; border-radius:18px; border:2px solid var(--ink); margin-top:14px; background:#000; }
+  .tip { font-size:13px; color:#5b6577; line-height:1.6; }
   a { color:#2b5fd9; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>本地视频增强 <span id="modeBadge" class="badge">检测中…</span></h1>
+  <h1>本地视频增强 <span id="modeBadge" class="badge wait">检测中…</span></h1>
   <p class="sub">纯前端 · 算力跑在你自己设备的浏览器/GPU 上 · 不联网处理、不常驻、免费。<br>
-  电脑 Chrome / Edge 用 WebGPU 跑 Real-ESRGAN <b>真 4× 超分</b>；手机算力有限会自动切换为轻量锐化。</p>
+  高配手机（iPhone 15/16 系列、一加 13 等）可跑 Real-ESRGAN <b>真 4× 超分</b>；无 GPU 时自动用 CPU 真超分，仅在完全不支持时才降级为轻量锐化。</p>
 
   <div class="card">
     <label class="drop" id="drop">
       <b>点击选择视频，或拖拽到此处</b>
-      <small>支持 mp4 / mov / webm · 建议短视频（≤约 20 秒）以保证流畅</small>
+      <small>支持 mp4 / mov / webm · 建议短视频（≤约 20 秒）以保证流畅，手机端更短更佳</small>
       <input type="file" id="file" accept="video/*" />
     </label>
     <div class="row">
+      <select id="quality">
+        <option value="auto">画质：自动（按设备）</option>
+        <option value="4x">真超分 4×（最清晰·最慢）</option>
+        <option value="lite">轻量锐化（最快）</option>
+      </select>
       <button id="start" disabled>开始增强</button>
       <button id="clear" class="ghost" disabled>清空</button>
       <span class="tip" id="fileInfo"></span>
@@ -78,12 +88,12 @@
   </div>
 
   <div class="card">
-    <p class="tip"><b>说明：</b>首次使用会从公共 CDN 加载开源模型与推理库（仅一次性下载并缓存），<b>视频内容全程在你本地设备处理，不会上传任何服务器</b>。若浏览器不支持 WebGPU，将自动降级为本地 Canvas 锐化（非真超分）。增强后视频保留原音轨。</p>
+    <p class="tip"><b>说明：</b>首次使用会从公共 CDN 加载开源模型与推理库（仅一次性下载并缓存），<b>视频内容全程在你本地设备处理，不会上传任何服务器</b>。真超分优先用 WebGPU；若浏览器（如 iOS Safari）的 WebGPU 后端不可用，会自动回退到 CPU（WASM）真超分——算力足够，只是更慢。增强后视频保留原音轨。</p>
   </div>
 </div>
 
 <script type="module">
-import { pipeline, RawImage } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.2';
+import { pipeline, RawImage, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.2';
 import { fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
 
 const $ = (id) => document.getElementById(id);
@@ -92,32 +102,83 @@ const setProg = (p) => { $('prog').style.width = Math.round(p * 100) + '%'; };
 
 let hasWebGPU = !!navigator.gpu;
 let upscaler = null;
+let modelTried = false;   // 是否已尝试过加载模型
 let srcFile = null;
+let dev = null;           // 设备能力
 
-// ---- 模式检测 ----
-async function detectMode() {
-  const badge = $('modeBadge');
+// ---- 设备能力分级（不再"手机=弱"）----
+async function detectDevice() {
+  const ua = navigator.userAgent;
+  const isIOS = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  const isMobile = isIOS || isAndroid || /Mobi|Mobile/.test(ua);
+
+  let gpuCapable = false;
   if (hasWebGPU) {
     try {
       const adapter = await navigator.gpu.requestAdapter();
-      if (adapter) { badge.textContent = '真超分 (WebGPU)'; badge.className = 'badge real'; return; }
+      if (adapter) gpuCapable = true;
     } catch (e) {}
   }
-  hasWebGPU = false;
-  badge.textContent = '轻量锐化 (手机/无WebGPU)';
+
+  // 高机型：桌面 + 旗舰手机（iPhone 15/16 系列、一加/安卓旗舰）
+  const hiEnd = (!isMobile)
+    || /iPhone1[5-9]|iPhone2\d|OnePlus|OPPO Find|vivo X\d|realme GT|Pixel [89]|Xiaomi 1[4-9]|SM-9\d\d/i.test(ua)
+    || (isAndroid && /Snapdragon|8 Elite|8 Gen/.test(ua));
+
+  return { isIOS, isAndroid, isMobile, hasWebGPU, gpuCapable, hiEnd };
+}
+
+// 启动检测：只判定设备，不急于加载模型（模型按画质选项懒加载）
+async function detectMode() {
+  const badge = $('modeBadge');
+  dev = await detectDevice();
+  if (dev.gpuCapable) {
+    badge.textContent = dev.isIOS ? '真超分 (WebGPU·iOS 可能用CPU)' : '真超分 (WebGPU)';
+    badge.className = 'badge real';
+  } else if (dev.hiEnd) {
+    badge.textContent = '真超分 (CPU)';
+    badge.className = 'badge real';
+  } else {
+    badge.textContent = '轻量锐化 (入门设备)';
+    badge.className = 'badge lite';
+  }
+}
+
+// ---- 加载超分模型（WebGPU 失败自动回退 WASM，跑真 ESRGAN）----
+async function loadUpscaler() {
+  if (modelTried) return;
+  modelTried = true;
+
+  const wantReal = $('quality').value === '4x'
+    || ($('quality').value === 'auto' && (dev.gpuCapable || dev.hiEnd));
+  if (!wantReal) {
+    log('已选轻量锐化模式，跳过模型加载。');
+    return;
+  }
+
+  const order = dev.gpuCapable ? ['webgpu', 'wasm'] : ['wasm'];
+  for (const backend of order) {
+    try {
+      log(`加载 Real-ESRGAN 模型（${backend} 后端，首次需联网下载，仅一次）…`);
+      upscaler = await pipeline('image-to-image', 'Xenova/realesrgan', { device: backend });
+      log(`模型就绪（${backend} 后端）。`);
+      const badge = $('modeBadge');
+      badge.textContent = backend === 'webgpu' ? (dev.isIOS ? '真超分 (WebGPU)' : '真超分 (WebGPU)') : '真超分 (CPU)';
+      badge.className = 'badge real';
+      return;
+    } catch (e) {
+      log(`${backend} 后端加载失败：${e.message}`);
+    }
+  }
+  log('真超分模型不可用，将使用轻量锐化。');
+  const badge = $('modeBadge');
+  badge.textContent = '轻量锐化 (模型不可用)';
   badge.className = 'badge lite';
 }
 
-// ---- 加载超分模型 ----
-async function loadUpscaler() {
-  if (!hasWebGPU) return;
-  log('加载 Real-ESRGAN 模型（首次需联网下载，仅一次）…');
-  upscaler = await pipeline('image-to-image', 'Xenova/realesrgan');
-  log('模型就绪。');
-}
-
 // ---- 抽帧（离线，先把原始帧读出来）----
-async function extractFrames(file, maxSide = 512, maxFrames = 240) {
+async function extractFrames(file, maxSide, maxFrames) {
   const url = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.src = url; video.muted = true; video.playsInline = true;
@@ -125,15 +186,12 @@ async function extractFrames(file, maxSide = 512, maxFrames = 240) {
     video.onloadedmetadata = res; video.onerror = () => rej(new Error('视频加载失败'));
   });
   const dur = video.duration;
-  let fps = 30;
-  try {
-    const v = video.videoWidth, h = video.videoHeight;
-    fps = evalFps(video);
-    log(`视频 ${v}×${h}，时长 ${dur.toFixed(1)}s，帧率 ${fps.toFixed(2)}`);
-  } catch (e) {}
+  const fps = 30;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  log(`视频 ${vw}×${vh}，时长 ${dur.toFixed(1)}s，帧率 ${fps}`);
   const total = Math.min(maxFrames, Math.max(1, Math.floor(dur * fps)));
-  const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
-  const tw = Math.round(video.videoWidth * scale), th = Math.round(video.videoHeight * scale);
+  const scale = Math.min(1, maxSide / Math.max(vw, vh));
+  const tw = Math.round(vw * scale), th = Math.round(vh * scale);
 
   const canvas = document.createElement('canvas'); canvas.width = tw; canvas.height = th;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -148,11 +206,6 @@ async function extractFrames(file, maxSide = 512, maxFrames = 240) {
   }
   URL.revokeObjectURL(url);
   return { frames, fps, tw, th };
-}
-
-function evalFps(video) {
-  // 粗略估计：用 metadata 没有可靠 fps，按 30 处理；如需精确可后续扩展
-  return 30;
 }
 
 // ---- 超分单帧 ----
@@ -170,7 +223,6 @@ function sharpenFrame(imgData) {
   const o = out.getContext('2d');
   o.filter = 'contrast(1.18) saturate(1.1) brightness(1.03)';
   o.drawImage(c, 0, 0);
-  // 简单 unsharp：叠加一次模糊的负片
   o.globalAlpha = 0.5; o.filter = 'blur(1px) contrast(1.4)'; o.drawImage(c, 0, 0);
   o.globalAlpha = 1; o.filter = 'none';
   return o.getImageData(0, 0, imgData.width, imgData.height);
@@ -183,20 +235,28 @@ async function run() {
   $('progWrap').style.display = 'block'; setProg(0);
   $('resultCard').style.display = 'none';
   try {
-    const { frames, fps } = await extractFrames(srcFile);
-    const N = frames.length;
-    const outW = frames[0].width * (hasWebGPU ? 4 : 1);
-    const outH = frames[0].height * (hasWebGPU ? 4 : 1);
+    await loadUpscaler();
 
-    // 预生成输出帧（ImageBitmap）
-    log(hasWebGPU ? '真超分处理中…' : '轻量锐化处理中…');
+    // 按设备分档决定抽帧分辨率（高配手机给更高清的输入）
+    const maxSide = dev.isMobile ? (dev.hiEnd ? 768 : 512) : 720;
+    const maxFrames = dev.isMobile ? 180 : 240;
+    log(`抽帧上限：长边 ${maxSide}px，最多 ${maxFrames} 帧`);
+
+    const { frames, fps } = await extractFrames(srcFile, maxSide, maxFrames);
+    const N = frames.length;
+    const useReal = !!upscaler;
+    const factor = useReal ? 4 : 1;
+    const outW = frames[0].width * factor;
+    const outH = frames[0].height * factor;
+
+    log(useReal ? `真超分处理中（${factor}×）…` : '轻量锐化处理中…');
     const outCanvas = document.createElement('canvas'); outCanvas.width = outW; outCanvas.height = outH;
     const outCtx = outCanvas.getContext('2d');
     const bitmaps = [];
     const tmp = document.createElement('canvas');
     for (let i = 0; i < N; i++) {
       let r;
-      if (hasWebGPU) {
+      if (useReal) {
         const ri = await upscaleFrame(frames[i]);
         tmp.width = ri.width; tmp.height = ri.height;
         const tctx = tmp.getContext('2d');
@@ -237,7 +297,6 @@ async function run() {
     rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
     const done = new Promise((res) => { rec.onstop = res; });
 
-    // 播放原视频以驱动音轨
     av.muted = false; av.currentTime = 0;
 
     rec.start();
@@ -290,7 +349,6 @@ $('clear').addEventListener('click', () => {
 
 (async () => {
   await detectMode();
-  loadUpscaler().catch((e) => log('模型加载失败（将仅用轻量锐化）：' + e.message));
 })();
 </script>
 </body>
