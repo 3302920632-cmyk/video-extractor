@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "video-extract": {
+      "verifyJwt": false,
+      "description": "视频提取 Edge Function - 支持抖音、B站、小红书、快手"
+    }
+  }
+}
