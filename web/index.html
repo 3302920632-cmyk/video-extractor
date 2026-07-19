@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>媒体工具箱</title>
+<style>
+  :root{
+    /* 微信小程序原生风格 */
+    --bg:#ededed;
+    --card:#ffffff;
+    --ink:#000000;
+    --muted:#888888;
+    --accent:#07c160;
+    --accent-press:#06ad56;
+    --danger:#fa5151;
+    --ok:#07c160;
+    --link:#576b95;
+    --line:#e5e5e5;
+    --chip:#f7f7f7;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Segoe UI",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;font-size:16px;}
+  button,input,textarea{font-family:inherit;}
+  a{color:var(--link);}
+
+  /* 顶部栏 */
+  #topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+    padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;background:#ededed;border-bottom:1px solid var(--line);}
+  #backBtn{display:none;border:none;background:transparent;font-size:28px;line-height:1;
+    color:var(--ink);padding:0 4px;margin:0;width:32px;}
+  #backBtn.show{display:block;}
+  #pageTitle{flex:1;text-align:center;font-size:17px;font-weight:600;}
+
+  /* 主视图 */
+  #view{max-width:680px;margin:0 auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 90px);}
+
+  /* 底部 tab */
+  #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:#f7f7f7;
+    border-top:1px solid var(--line);padding:8px 0 calc(env(safe-area-inset-bottom) + 6px);max-width:680px;margin:0 auto;}
+  #tabbar .tab{flex:1;border:none;background:transparent;color:var(--muted);font-size:11px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;}
+  #tabbar .tab .ic{font-size:22px;line-height:1;}
+  #tabbar .tab.active{color:var(--accent);}
+
+  /* 卡片 */
+  .card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:16px;}
+  .card h3{margin:0 0 14px;font-size:17px;font-weight:600;}
+  .muted{color:var(--muted);font-size:14px;line-height:1.5;}
+  .hint{font-size:13px;color:var(--muted);line-height:1.6;background:#f7f7f7;border-radius:8px;padding:12px;margin-top:12px;}
+
+  /* 工具箱网格 */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .tool{position:relative;background:var(--card);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;}
+  .tool:active{opacity:.7;}
+  .tool .ic{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#e6f7ed;color:var(--accent);}
+  .tool .nm{font-size:15px;font-weight:600;}
+  .tool .ds{font-size:12px;color:var(--muted);line-height:1.4;}
+
+  /* 输入框 */
+  textarea,input[type=text],input[type=url]{width:100%;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:16px;line-height:1.5;outline:none;}
+  textarea:focus,input:focus{border-color:var(--accent);}
+  textarea{min-height:96px;resize:vertical;}
+
+  /* 按钮 */
+  .btn{width:100%;text-align:center;padding:14px 0;border-radius:8px;font-size:16px;font-weight:600;border:none;background:var(--accent);color:#fff;margin-top:14px;}
+  .btn:active{background:var(--accent-press);}
+  .btn[disabled]{opacity:.5;}
+  .btn.ghost{background:#f2f2f2;color:var(--ink);}
+  .btn.sm{width:auto;padding:8px 14px;font-size:13px;}
+  .row{display:flex;gap:12px;align-items:center;}
+  .row .btn{flex:1;}
+
+  /* 段选择 chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{padding:8px 14px;border-radius:999px;background:#f2f2f2;color:var(--muted);font-size:14px;}
+  .chip.active{background:#e6f7ed;color:var(--accent);}
+
+  /* 状态条 */
+  .status{font-size:14px;color:var(--muted);margin-top:12px;min-height:20px;line-height:1.5;}
+  .status.err{color:var(--danger);}
+  .status.ok{color:var(--ok);}
+
+  /* 视频结果 —— 关键：自适应，不撑爆 */
+  .result-card{padding:0;overflow:hidden;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.10);}
+  .result-card h3{padding:16px 16px 0;margin:0;}
+  .video-wrap{width:100%;background:linear-gradient(135deg,#1c1c1e,#000);position:relative;border-radius:0;}
+  .video-wrap video{width:100%;height:auto;max-height:70vh;display:block;object-fit:contain;background:#000;}
+  .video-fallback{width:100%;aspect-ratio:9/16;max-height:70vh;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;text-align:center;padding:24px;line-height:1.7;background:linear-gradient(135deg,#1c1c1e,#000);}
+
+  /* 信息列表 */
+  .list-card{background:#fff;margin:0 16px 16px;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+  .list-row{display:flex;align-items:center;min-height:52px;padding:0 16px;border-bottom:1px solid var(--line);}
+  .list-row:last-child{border-bottom:none;}
+  .row-label{width:76px;flex-shrink:0;font-size:14px;color:var(--accent);font-weight:600;}
+  .row-value{flex:1;font-size:15px;color:var(--ink);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* 行内操作按钮 */
+  .row-actions{display:flex;gap:12px;padding:0 16px 16px;}
+  .action-btn{flex:1;height:46px;border-radius:8px;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;border:none;}
+  .btn-fill{background:var(--accent);color:#fff;}
+  .btn-fill:active{background:var(--accent-press);}
+  .btn-outline{background:#f2f2f2;color:var(--ink);}
+
+  /* 图片结果 */
+  img.result-img{width:100%;border-radius:8px;display:block;}
+
+  /* 进度条 */
+  .track{width:100%;height:6px;background:#e5e5e5;border-radius:999px;overflow:hidden;margin-top:10px;}
+  .fill{height:100%;width:0;background:var(--accent);transition:width .3s;}
+  .fill.indet{width:40%!important;animation:slide 1.1s infinite;}
+  @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+
+  /* 记录 */
+  .rec{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;}
+  .rec .t{font-size:15px;font-weight:600;}
+  .rec .meta{font-size:13px;color:var(--muted);margin-top:4px;}
+  .rec .acts{display:flex;gap:8px;margin-top:10px;}
+
+  /* 优化面板 */
+  .enhance{background:#f7f7f7;border-radius:8px;padding:14px;margin-top:12px;position:relative;}
+  .enhance .x{position:absolute;top:8px;right:10px;font-size:18px;color:var(--muted);background:none;border:none;}
+  .enhance h4{margin:0 0 6px;font-size:15px;}
+  .enhance .kw{font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+  .enhance .lbl{color:var(--accent);font-weight:600;font-size:13px;margin-top:10px;display:block;}
+
+  /* 去水印选区 */
+  .wm-stage{position:relative;display:inline-block;max-width:100%;touch-action:none;user-select:none;}
+  .wm-stage img{display:block;max-width:100%;border-radius:8px;}
+  .wm-sel{position:absolute;border:2px dashed var(--accent);background:rgba(7,193,96,.15);}
+
+  /* 文件列表 */
+  .filechip{display:flex;align-items:center;gap:8px;background:#f7f7f7;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px;}
+  .filechip .x{border:none;background:transparent;color:var(--danger);font-size:16px;margin-left:auto;}
+
+  .toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.75);
+    color:#fff;padding:14px 22px;border-radius:8px;font-size:14px;z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;max-width:80%;text-align:center;}
+  .toast.show{opacity:1;}
+  .hidden{display:none!important;}
+  details summary{cursor:pointer;color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+  <header id="topbar">
+    <button id="backBtn" class="">‹</button>
+    <span id="pageTitle">工具箱</span>
+  </header>
+
+  <main id="view"></main>
+
+  <nav id="tabbar">
+    <button class="tab active" data-route="home"><span class="ic">🔧</span>工具箱</button>
+    <button class="tab" data-route="records"><span class="ic">🕘</span>记录</button>
+    <button class="tab" data-route="settings"><span class="ic">👤</span>我的</button>
+  </nav>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="lib/records.js?v=4"></script>
+  <script src="lib/audio.js?v=4"></script>
+  <script src="lib/extract.js?v=4"></script>
+  <script src="lib/agnes.js?v=4"></script>
+  <script src="lib/pdf.js?v=4"></script>
+  <script src="lib/wm.js?v=4"></script>
+  <script src="lib/fflate.js?v=4"></script>
+  <script src="lib/compress.js?v=4"></script>
+  <script src="app.js?v=4"></script>
+</body>
+</html>

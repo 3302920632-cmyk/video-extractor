@@ -1,0 +1,9 @@
+# Netlify 部署配置（站点根目录 = web/）
+[build]
+  publish = "."
+
+[functions]
+  # 函数目录（相对站点根）：web/netlify/functions
+  directory = "netlify/functions"
+
+# 函数默认走 Node 18+ 运行时，支持流式返回
